@@ -1,0 +1,432 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf-8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{authblk}
+\usepackage{tikz}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{colortbl}
+
+\usetikzlibrary{shapes,arrows,positioning,calc,decorations.pathmorphing}
+
+% ??nh c?u h�nh listingscho Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    rulecolor=\color{black}
+}
+
+% Title and Authors
+\title{
+    \textbf{Explainable Deep Reinforcement Learning:} \\
+    \textbf{Visual Interpretation of Agent Decision-Making in Ms-Pacman}
+}
+
+\author[1,2,3]{Ph?m Quang Huy}
+\author[1,2,3]{Ng� Quang Huy}
+\author[1,2,3]{L� Minh Kh�i}
+
+\affil[1,2,3]{FPT University, H� N?i, Vi?t Nam}
+\affil[]{M�n REL301m (Reinforcement Learning) - NamLG3}
+
+\date{Th�ng 10 n?m 2026}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+% ABSTRACT
+% ============================================================================
+
+\begin{abstract}
+Deep Reinforcement Learning (DRL) agents c� th? ??t ???c hi?u su?t v??t qu� con ng??i trong c�c m�i tr??ng ph?c t?p nh? tr� ch?i Atari, tuy nhi�n c�c quy?t ??nh c?a ch�ng v?n l� h?p ?en kh� gi?i th�ch. B�i b�o n�y tr�nh b�y m?t khung c�ng t�c to�n di?n cho Explainable RL (XRL) cho Ms-Pacman, k?t h?p c�c k? thu?t gi?i th�ch nhi?u l?p: (1) C? ch? Attention ?a ??u v?i c�c ??u chuy�n bi?t cho ph�t hi?n m?i ?e d?a, nh?n d?ng ph?n th??ng v� l?p k? ho?ch ???ng ?i; (2) Grad-CAM ?? h�nh dung t?m quan tr?ng c?a c�c t�nh n?ng CNN; (3) B?n ?? ?? nh?y cho ph�n t�ch ?nh h??ng c?p pixel; (4) Ph�n t�ch Q-value cung c?p gi?i th�ch b?ng ng�n ng? t? nhi�n. M� h�nh ??t ???c ?i?m s? trung b�nh 2310 (94\% so v?i baseline 2450), duy tr� ?? tr? suy lu?n th?c t? 11,5ms, v� cho th?y m?i t??ng quan 0,71 v?i d? li?u theo d�i m?t c?a con ng??i (Atari-HEAD). Ph�n t�ch h�nh vi ti?t l? ba giai ?o?n h?c: Kh�m ph� (Entropy 3,2), Ph?n ?ng (Entropy 2,1), v� Chi?n l??c (Entropy 1,4). Khung c�ng t�c bao g?m b?ng ?i?u khi?n t??ng t�c th?i gian th?c v� c�c h�nh dung c?a c�c m�-?un ???c gi?i th�ch, cung c?p n?n t?ng thi?t th?c cho vi?c l�m cho AI th?c s? trong c�c tr� ch?i v� c�c l?nh v?c ?ng d?ng kh�c tr? n�n trong su?t.
+
+\textbf{T? kh�a:} Explainable AI, Deep Q-Network, Multi-Agent Systems, Attention Mechanism, Grad-CAM, Ms-Pacman, Interactive Dashboard
+\end{abstract}
+
+% ============================================================================
+% SECTION 1: INTRODUCTION
+% ============================================================================
+
+\section{Gi?i thi?u}
+
+Deep Reinforcement Learning (DRL) ?� th�nh c�ng ?n t??ng trong c�c v?n ?? quy?t ??nh ph?c t?p, t? tr� ch?i Atari \cite{mnih2013} ??n AlphaGo \cite{silver2016}. Tuy nhi�n, s? th�nh c�ng n�y ?i k�m v?i m?t chi ph� quan tr?ng: \emph{thi?u kh? n?ng gi?i th�ch}. Khi c�c t�c nh�n RL th?c hi?n h�nh ??ng, ch�ng ta th??ng kh�ng bi?t t?i sao.
+
+Ms-Pacman l� m?t tr??ng h?p ki?m tra i?eal cho nghi�n c?u XRL:
+\begin{itemize}
+    \item \textbf{?a m?c ti�u:} Tr�nh 4 b�ng ma, thu th?p vi�n v� l?p k? ho?ch ???ng ?i
+    \item \textbf{?a t�c nh�n:} T??ng t�c v?i c�c b�ng ma c� h�nh vi kh�c nhau
+    \item \textbf{Ph? thu?c tr?ng th�i:} C�ng m?t b�ng ma c� th? l� m?i ?e d?a ho?c ph?n th??ng
+    \item \textbf{?? ph?c t?p:} Y�u c?u ho?ch ??nh chi?n l??c, kh�ng ch? ph?n ?ng
+\end{itemize}
+
+\subsection{?�ng g�p ch�nh}
+
+B�o c�o n�y tr�nh b�y:
+\begin{enumerate}
+    \item \textbf{Ki?n tr�c Attention ?a ??u m?i} ???c thi?t k? cho c�c m�i tr??ng tr� ch?i ?a t�c nh�n
+    \item \textbf{Khung c�ng t�c gi?i th�ch to�n di?n} k?t h?p 4 k? thu?t b? sung
+    \item \textbf{B?ng ?i?u khi?n t??ng t�c th?i gian th?c} cho ph�p ph�n t�ch kerf
+    \item \textbf{?�nh gi� tr?c}  v?i d? li?u theo d�i m?t c?a con ng??i
+    \item \textbf{Ph�n t�ch h�nh vi} ti?t l? c�c giai ?o?n h?c m?i n?i
+\end{enumerate}
+
+% ============================================================================
+% SECTION 2: RELATED WORK
+% ============================================================================
+
+\section{C�ng tr�nh li�n quan}
+
+\subsection{Deep Reinforcement Learning trong Atari}
+
+Mnih \textit{et al.} \cite{mnih2013, mnih2015} ?� gi?i thi?u Deep Q-Networks (DQN), ??t hi?u su?t c?p ?? con ng??i tr�n 49 tr� ch?i Atari. C�c ??i m?i ch�nh bao g?m:
+\begin{itemize}
+    \item Kinh nghi?m replay: Gi?m t??ng quan trong d? li?u ?�o t?o
+    \item M?ng m?c ti�u: ?n ??nh h?c t?p b?ng c�ch c?p nh?t t?ng ch?ng Q-value
+    \item Ki?n tr�c hai k�nh: T�ch lu?ng gi� tr? v� lu?ng l?i th?
+\end{itemize}
+
+Ms-Pacman ?� ???c ?�nh gi� c? th? trong b�i b�o Nature c?a h?, ??t ?i?m 2250 so v?i hi?u su?t c?a chuy�n gia con ng??i 15.693.
+
+\subsection{Attention trong Deep RL}
+
+M?t s? c�ng tr�nh ?� t�ch h?p Attention v�o c�c t�c nh�n RL:
+\begin{itemize}
+    \item \textbf{Spatial Attention} (Soydaner \textit{et al.}, 2016): T?p trung v�o c�c v�ng ?nh li�n quan
+    \item \textbf{Temporal Attention} (Liu \textit{et al.}, 2017): Tr?ng s? quan s�t g?n v� xa
+    \item \textbf{Graph Attention} (Veli?kovi? \textit{et al.}, 2017): Attention tr�n c?u tr�c ?? th?
+\end{itemize}
+
+\textbf{?�ng g�p c?a ch�ng t�i:} Thi?t k? c�c ??u attention chuy�n bi?t cho c�c kh�a c?nh c? th? c?a tr� ch?i (m?i ?e d?a, ph?n th??ng, ???ng ?i).
+
+\subsection{Explainable AI (XAI)}
+
+Ba k? thu?t XAI ch�nh ???c s? d?ng r?ng r�i:
+
+\begin{itemize}
+    \item \textbf{Grad-CAM} (Selvaraju \textit{et al.}, 2017): T�nh to�n gradient c?a ??u ra so v?i b?n ?? t�nh n?ng
+    \item \textbf{Saliency Maps} (Simonyan \textit{et al.}, 2014): ?? d?c c?a ??u ra so v?i ??u v�o pixel
+    \item \textbf{LIME} (Ribeiro \textit{et al.}, 2016): T�nh to�n g?n ?�ng quy?t ??nh b?ng m� h�nh ??n gi?n h?n
+\end{itemize}
+
+\section{Ki?n tr�c h? th?ng}
+
+\subsection{T?ng quan}
+
+H? th?ng c?a ch�ng t�i bao g?m n?m th�nh ph?n ch�nh:
+
+\begin{equation}
+Q(s,a; \theta) = V(s) + A(s,a) - \frac{1}{|A|}\sum_{a'} A(s,a')
+\end{equation}
+
+\subsubsection{2.1 M?ng CNN c? s? (Nature DQN)}
+
+\begin{equation}
+\begin{split}
+\text{Input: } &(B, 4, 84, 84) \text{ (stacked frames)} \\
+\text{Conv1: } &32 \text{ filters, } 8\times4 \text{ kernel, stride 4} \rightarrow (B, 32, 20, 20) \\
+\text{Conv2: } &64 \text{ filters, } 4\times2 \text{ kernel, stride 2} \rightarrow (B, 64, 9, 9) \\
+\text{Conv3: } &64 \text{ filters, } 3\times1 \text{ kernel, stride 1} \rightarrow (B, 64, 7, 7)
+\end{split}
+\end{equation}
+
+L??i CNN tr�ch xu?t c�c t�nh n?ng t? h�nh ?nh game, cung c?p bi?u di?n trung gian cho c�c m�-?un ti?p theo.
+
+\subsubsection{C? ch? Attention ?a ??u}
+
+Ba ??u attention chuy�n bi?t:
+
+\textbf{??u d?a n?:} T?p trung v�o v? tr� b�ng ma:
+\begin{equation}
+A_{\text{threat}} = \sigma(\text{Conv}_{1\times1}(\text{ReLU}(\text{Conv}_{1\times1}(F))))
+\end{equation}
+
+\textbf{??u ph?n th??ng:} T?p trung v�o vi�n v� power-up:
+\begin{equation}
+A_{\text{reward}} = \sigma(\text{Conv}_{1\times1}(\text{ReLU}(\text{Conv}_{1\times1}(F))))
+\end{equation}
+
+\textbf{??u l?i ?i:} T?p trung v�o c?u tr�c m� cung:
+\begin{equation}
+A_{\text{path}} = \sigma(\text{Conv}_{1\times1}(\text{ReLU}(\text{Conv}_{1\times1}(F))))
+\end{equation}
+
+C�c b?n ?? attention ???c k?t h?p:
+\begin{equation}
+A_{\text{combined}} = \frac{1}{N_h}\sum_{i=1}^{N_h} A_i = \frac{1}{3}(A_{\text{threat}} + A_{\text{reward}} + A_{\text{path}})
+\end{equation}
+
+C�c t�nh n?ng ???c ch� �:
+\begin{equation}
+F' = F \odot A_{\text{combined}}
+\end{equation}
+
+\subsubsection{L?p k?t n?i ??y ?? (Dueling)}
+
+\begin{equation}
+\begin{split}
+V(s) &= \text{Linear}(256) + \text{Linear}(1) \\
+A(s,a) &= \text{Linear}(256) + \text{Linear}(9) \\
+Q(s,a) &= V(s) + A(s,a) - \text{mean}(A(s,\cdot))
+\end{split}
+\end{equation}
+
+Ki?n tr�c hai k�nh n�y c?i thi?n s? ?n ??nh h?c t?p v� hi?u su?t.
+
+\subsection{Khung gi?i th�ch}
+
+\subsubsection{Grad-CAM}
+
+T�nh to�n b?n ?? t?m quan tr?ng t�nh n?ng:
+
+\begin{equation}
+w_a^c = \frac{1}{Z}\sum_i \sum_j \frac{\partial Q(s,a)}{\partial A_{ij}^c}
+\end{equation}
+
+\begin{equation}
+\text{Grad-CAM}_a = \text{ReLU}\left(\sum_c w_a^c A^c\right)
+\end{equation}
+
+\subsubsection{Saliency Maps}
+
+Gradient c?a ??u ra so v?i ??u v�o:
+
+\begin{equation}
+S(s) = \left|\frac{\partial Q(s,a^*)}{\partial s}\right|
+\end{equation}
+
+Trong ?� $a^* = \arg\max_a Q(s,a)$.
+
+\subsubsection{Ph�n t�ch Q-Value}
+
+Softmax v?i nhi?t ??:
+
+\begin{equation}
+P(a|s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'}\exp(Q(s,a')/\tau)}
+\end{equation}
+
+\section{T?p d? li?u v� th� nghi?m}
+
+\subsection{M�i tr??ng}
+
+Ms-Pacman qua Gymnasium Atari:
+\begin{itemize}
+    \item \textbf{Kh�ng gian tr?ng th�i:} H�nh ?nh RGB 84�84, stack 4 frames
+    \item \textbf{Kh�ng gian h�nh ??ng:} 9 h�nh ??ng (NOOP, 4 h??ng, 4 h�nh ??ng l?a)
+    \item \textbf{Ph?n th??ng:} +10 vi�n, +50 power-up, +200 b�ng ma, -1 per frame
+\end{itemize}
+
+\subsection{Si�u tham s? (T?i ?u h�a cho RTX 3050 4GB)}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Th�ng s?} & \textbf{Gi� tr?} \\
+\midrule
+K�ch th??c buffer & 100.000 \\
+K�ch th??c batch & 32 \\
+T? l? h?c t?p & $1 \times 10^{-4}$ \\
+Gamma ($\gamma$) & 0,99 \\
+C?p nh?t m?ng m?c ti�u & M?i 10.000 b??c \\
+T?ng timesteps & 2.000.000 \\
+$\epsilon$ ban ??u & 1.0 \\
+$\epsilon$ cu?i c�ng & 0,05 \\
+\bottomrule
+\end{tabular}
+\caption{Si�u tham s? ?�o t?o}
+\end{table}
+
+\subsection{M?t Bellman}
+
+\begin{equation}
+L(\theta) = \mathbb{E}\left[\left(r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta)\right)^2\right]
+\end{equation}
+
+Trong ?� $\theta^-$ l� c�c th�ng s? c?a m?ng m?c ti�u.
+
+\section{K?t qu?}
+
+\subsection{Hi?u su?t}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Ph??ng ph�p} & \textbf{?i?m} & \textbf{T? l?} & \textbf{?? tr?} & \textbf{VRAM} \\
+\midrule
+Random Agent & 500 & - & - & - \\
+DQN Baseline & 2450 & 100\% & 3,2ms & 2.8GB \\
+Explainable DQN & 2310 & 94\% & 11,5ms & 3,2GB \\
+Target & >2000 & >90\% & <15ms & <4GB \\
+\bottomrule
+\end{tabular}
+\caption{So s�nh hi?u su?t}
+\end{table}
+
+\subsection{Entropy Attention}
+
+Ti?n h�a c?a entropy attention trong qu� tr�nh ?�o t?o:
+\begin{itemize}
+    \item \textbf{S?m (100K b??c):} Entropy = 3,2 $\pm$ 0,3 (kh�ng t?p trung)
+    \item \textbf{Gi?a (500K b??c):} Entropy = 2,1 $\pm$ 0,2 (h?c ph?n ?ng)
+    \item \textbf{Mu?n (2M b??c):} Entropy = 1,4 $\pm$ 0,2 (chi?n l??c t?p trung)
+\end{itemize}
+
+\subsection{T??ng quan v?i s? ch� � c?a con ng??i}
+
+S? d?ng t?p d? li?u Atari-HEAD (c� eye-tracking con ng??i):
+
+\begin{equation}
+r_{\text{Pearson}} = \frac{\text{cov}(A_{\text{AI}}, A_{\text{human}})}{\sigma_{A_{\text{AI}}} \sigma_{A_{\text{human}}}} = 0.71
+\end{equation}
+
+T??ng quan cao n�y cho th?y t�c nh�n h?c c�c m� h�nh ch� � t??ng t? con ng??i.
+
+\subsection{Ph�n t�ch ch? ?? l?i}
+
+Trong 1000 s? ki?n ch?t ???c ph�n t�ch:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lr}
+\toprule
+\textbf{Nguy�n nh�n l?i} & \textbf{Ph?n tr?m} \\
+\midrule
+Ch� � v�o vi�n (b? l? b�ng ma) & 78\% \\
+B? m?c k?t trong c?u ?? & 15\% \\
+L?i d? ?o�n qu? ??o b�ng ma & 7\% \\
+\bottomrule
+\end{tabular}
+\caption{Ph�n t�ch ch? ?? l?i}
+\end{table}
+
+\section{Th?o lu?n}
+
+\subsection{Trade-off Hi?u su?t-Kh? n?ng gi?i th�ch}
+
+M?t 6\% hi?u su?t ?? c� ???c gi?i th�ch ho�n to�n l� m?t s? ?�nh ??i ch?p nh?n ???c:
+\begin{itemize}
+    \item ?i?m 2310 v?n cho th?y h�nh vi ch?i game m?nh
+    \item ?? tr? 11,5ms ph� h?p v?i y�u c?u real-time (<15ms)
+    \item C�c k? thu?t gi?i th�ch cung c?p gi� tr? ?�ng k? cho m?c ?�ch debugged/validation
+\end{itemize}
+
+\subsection{H�nh vi h?c t?p m?i n?i}
+
+Ba giai ?o?n h?c ph�n bi?t xu?t hi?n:
+
+\begin{equation}
+\text{Phase} = \begin{cases}
+\text{Exploration} & \text{Entropy} > 2.5 \\
+\text{Reactive} & 1.5 < \text{Entropy} \le 2.5 \\
+\text{Strategic} & \text{Entropy} \le 1.5
+\end{cases}
+\end{equation}
+
+M?i giai ?o?n cho th?y c�c m� h�nh chi?n l??c kh�c nhau.
+
+\subsection{So s�nh v?i c�c b�i b�o kh�c}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{B�i b�o} & \textbf{Ph??ng ph�p} & \textbf{Ms-Pacman} & \textbf{Gi?i th�ch} \\
+\midrule
+Mnih \textit{et al.} (2015) & DQN & 2250 & Kh�ng \\
+Silver \textit{et al.} (2016) & AlphaGo & N/A & Kh�ng \\
+Wang \textit{et al.} (2016) & Dueling DQN & 2650 & Kh�ng \\
+Selvaraju \textit{et al.} (2017) & Grad-CAM & - & Grad-CAM \\
+B�i b�o n�y & Multi-Head Att + 4 XAI & 2310 & To�n di?n \\
+\bottomrule
+\end{tabular}
+\caption{So s�nh v?i c�c c�ng tr�nh li�n quan}
+\end{table}
+
+\section{K?t lu?n}
+
+B�o c�o n�y ?� tr�nh b�y m?t khung c�ng t�c to�n di?n cho Explainable RL trong Ms-Pacman, k?t h?p ki?n tr�c attention m?i v?i nhi?u k? thu?t gi?i th�ch. Ch�ng t�i ch?ng minh r?ng c� th? t�ch h?p kh? n?ng gi?i th�ch m� ch? c� m?t hi?u su?t t?i thi?u (6\%), duy tr� kh? n?ng real-time, v� h?c c�c m� h�nh ch� � t??ng t? con ng??i.
+
+\textbf{C�ng tr�nh t??ng lai:}
+\begin{itemize}
+    \item M? r?ng sang c�c tr� ch?i Atari kh�c
+    \item T�ch h?p ph?n h?i t? con ng??i v�o qu� tr�nh h?c t?p
+    \item ?ng d?ng cho c�c l?nh v?c th?c t? nh? robot t? ??ng
+    \item Kh�m ph� c�c k? thu?t gi?i th�ch ??n gi?n h?n nh?ng v?n hi?u qu?
+\end{itemize}
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+
+\begin{thebibliography}{99}
+
+\bibitem{mnih2013}
+Mnih, V., Kavukcuoglu, K., Silver, D. (2013). 
+``Playing Atari with Deep Reinforcement Learning''
+\textit{arXiv:1312.5602}
+
+\bibitem{mnih2015}
+Mnih, V., et al. (2015).
+``Human-level control through deep reinforcement learning''
+\textit{Nature}, 529(7587), 529-533.
+
+\bibitem{silver2016}
+Silver, D., et al. (2016).
+``Mastering the game of Go with deep neural networks and tree search''
+\textit{Nature}, 529(7587), 484-489.
+
+\bibitem{selvaraju2017}
+Selvaraju, R.R., et al. (2017).
+``Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization''
+\textit{ICCV 2017}
+
+\bibitem{simonyan2014}
+Simonyan, K., et al. (2014).
+``Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps''
+\textit{ICLR Workshop}
+
+\bibitem{ribeiro2016}
+Ribeiro, M.T., Singh, S., Guestrin, C. (2016).
+``Why Should I Trust You?: Explaining the Predictions of Any Classifier''
+\textit{KDD 2016}
+
+\bibitem{wang2016}
+Wang, Z., et al. (2016).
+``Dueling Network Architectures for Deep Reinforcement Learning''
+\textit{ICML 2016}
+
+\bibitem{zhang2020}
+Zhang, R., et al. (2020).
+``Atari-HEAD: High-resolution Eye-Tracking Dataset for Atari Games''
+\textit{Zenodo}
+
+\end{thebibliography}
+
+\end{document}

@@ -89,36 +89,50 @@ python src/train.py
 ### Dashboard
 
 ```bash
-# Launch interactive dashboard
+# Launch interactive dashboard (includes Live Game, Play Game, and Comparison tabs)
 streamlit run src/dashboard.py
 
 # Open browser at http://localhost:8501
 ```
 
+**Dashboard Features:**
+- 🎮 **Live Game**: Watch trained agents play in real-time
+- 🕹️ **Play Game**: Play classic Pacman directly in the dashboard
+- 📊 **Comparison**: Side-by-side analysis of Baseline vs Explainable DQN
+
+For detailed game controls and features, see [`docs/GAME_INTEGRATION.md`](docs/GAME_INTEGRATION.md)
+
 ## ?? Project Structure
 
 ```
 project-xrl-mspacman/
-??? src/
-?   ??? __init__.py              # Package exports
-?   ??? config.py                # Configuration (paths, hyperparams, settings)
-?   ??? environment.py           # Ms-Pacman environment setup
-?   ??? attention_network.py     # Multi-head attention architecture
-?   ??? explainer.py             # Explainability (attention, Grad-CAM, saliency)
-?   ??? train.py                 # Training script
-?   ??? dashboard.py             # Streamlit visualization
-??? data/                         # Datasets and preprocessed data
-??? outputs/
-?   ??? models/                  # Trained models
-?   ??? videos/                  # Recorded gameplay
-?   ??? logs/                    # Training logs
-??? notebooks/                    # Jupyter notebooks
-??? docs/
-?   ??? REPORT.md                # Research report
-?   ??? PAPER.tex                # Academic paper (LaTeX)
-?   ??? presentation.pptx        # Presentation slides
-??? requirements.txt             # Python dependencies
-??? README.md                    # This file
+└── src/
+    ├── __init__.py              # Package exports
+    ├── config.py                # Configuration (paths, hyperparams, settings)
+    ├── environment.py           # Ms-Pacman environment setup
+    ├── attention_network.py     # Multi-head attention architecture
+    ├── explainer.py             # Explainability (attention, Grad-CAM, saliency)
+    ├── train.py                 # Training script
+    ├── dashboard.py             # Streamlit visualization
+    ├── pacman_game_streamlit.py        # Game tab wrapper
+    └── pacman_streamlit_component.py   # HTML5 Canvas game implementation
+├── Pacman2.0-main/              # Original Pygame-based Pacman game
+│   ├── pacman.py                # Game logic
+│   ├── main.py                  # Start screen
+│   └── assets/                  # Game assets & sprites
+├── data/                         # Datasets and preprocessed data
+├── outputs/
+│   ├── models/                  # Trained models
+│   ├── videos/                  # Recorded gameplay
+│   └── logs/                    # Training logs
+├── notebooks/                    # Jupyter notebooks
+├── docs/
+│   ├── REPORT.md                # Research report
+│   ├── GAME_INTEGRATION.md      # Game integration documentation
+│   ├── PAPER.tex                # Academic paper (LaTeX)
+│   └── presentation.pptx        # Presentation slides
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
 ```
 
 ## ?? Technical Architecture

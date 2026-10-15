@@ -606,11 +606,16 @@ def main():
     with status_cols[2]:
         st.markdown('<div class="live-indicator"><div class="live-dot"></div> <span>Live Comparison Mode</span></div>', unsafe_allow_html=True)
     
-    view = st.radio("View", ["Live Game", "Comparison"], horizontal=True,
+    view = st.radio("View", ["Live Game", "Play Game", "Comparison"], horizontal=True,
                     label_visibility="collapsed", key="main_view")
     st.divider()
     if view == "Live Game":
         render_live_view()
+        return
+    
+    if view == "Play Game":
+        from pacman_game_streamlit import create_game_tab
+        create_game_tab()
         return
     
     # Control Panel

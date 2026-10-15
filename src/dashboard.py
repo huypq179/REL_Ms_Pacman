@@ -610,7 +610,22 @@ def main():
                     label_visibility="collapsed", key="main_view")
     st.divider()
     if view == "Live Game":
-        render_live_view()
+        # Let user choose game type
+        game_type = st.radio(
+            "Watch Mode", 
+            ["DQN Agent (ALE Ms-Pacman)", "AI vs AI (Pacman 2.0)"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="live_game_type"
+        )
+        st.divider()
+        
+        if game_type == "DQN Agent (ALE Ms-Pacman)":
+            render_live_view()
+        else:
+            # Pacman 2.0 with AI
+            from pacman_game_integration import render_pacman_ai_demo
+            render_pacman_ai_demo()
         return
     
     if view == "Play Game":

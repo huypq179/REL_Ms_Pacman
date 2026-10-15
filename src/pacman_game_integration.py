@@ -387,6 +387,141 @@ def create_game_tab():
     render_pacman_game_launcher()
 
 
+def render_pacman_ai_demo():
+    """Render Pacman 2.0 with AI playing automatically (for Live Game tab)"""
+    
+    st.markdown("""
+    <style>
+    .ai-header {
+        background: linear-gradient(135deg, #1e3a5f 0%, #10b981 100%);
+        border: 2px solid #22d3ee;
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    .ai-title {
+        color: #22d3ee;
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 12px;
+        text-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="ai-header">
+        <div class="ai-title">🤖 AI Playing Pacman 2.0</div>
+        <div style="color: #9ca3af; font-size: 1em;">
+            Watch AI agents play Pacman using genetic algorithm training
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Check if game exists
+    if not PACMAN_MAIN.exists():
+        st.error(f"❌ Không tìm thấy game tại: `{PACMAN_MAIN}`")
+        return
+    
+    #Initialize session state
+    if 'ai_game_process' not in st.session_state:
+        st.session_state.ai_game_process = None
+    if 'ai_game_running' not in st.session_state:
+        st.session_state.ai_game_running = False
+    
+    # Info
+    st.info("""
+    🤖 **AI Mode**: Game sẽ chạy với AI agent đã được train bằng Genetic Algorithm.
+    
+    - ✅ AI tự động điều khiển Pacman
+    - ✅ Học từ các thế hệ trước
+    - ✅ Sử dụng minimax algorithm cho ghosts
+    - ℹ️ Game chạy trong cửa sổ riêng để xem AI chơi
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("▶️ Start AI Demo", use_container_width=True, type="primary"):
+            try:
+                # Launch game with AI mode
+                st.session_state.ai_game_process = subprocess.Popen(
+                    [sys.executable, str(PACMAN_DIR / "genetic_algorithim.py")],
+                    cwd=str(PACMAN_DIR),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                st.session_state.ai_game_running = True
+                st.success("✅ AI Demo started! Check the Pygame window.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+    
+    with col2:
+        if st.button("🎮 Manual Play", use_container_width=True):
+            try:
+                st.session_state.ai_game_process = subprocess.Popen(
+                    [sys.executable, str(PACMAN_MAIN)],
+                    cwd=str(PACMAN_DIR),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                st.session_state.ai_game_running = True
+                st.success("✅ Manual mode started!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+    
+    with col3:
+        if st.button("⏹️ Stop", use_container_width=True):
+            if st.session_state.ai_game_process:
+                try:
+                    st.session_state.ai_game_process.terminate()
+                    st.session_state.ai_game_process.wait(timeout=3)
+                    st.success("✅ Stopped")
+                except:
+                    st.session_state.ai_game_process.kill()
+                finally:
+                    st.session_state.ai_game_running = False
+                    st.rerun()
+    
+    # Status
+    if st.session_state.ai_game_running and st.session_state.ai_game_process:
+        try:
+            process = psutil.Process(st.session_state.ai_game_process.pid)
+            if process.is_running():
+                st.success("🟢 AI Demo đang chạy...")
+            else:
+                st.warning("🔴 AI Demo đã dừng")
+                st.session_state.ai_game_running = False
+        except (psutil.NoSuchProcess, AttributeError):
+            st.warning("🔴 AI Demo đã dừng")
+            st.session_state.ai_game_running = False
+    
+    # Documentation
+    st.markdown("""
+    ### 📖 Về AI Training
+    
+    **Genetic Algorithm:**
+    - 🧬 Học qua nhiều thế hệ
+    - 🎯 Tối ưu hóa chiến lược
+    - 📊 Selection, crossover, mutation
+    - 🏆 Evolve để đạt điểm cao hơn
+    
+    **AI Features:**
+    - Tránh ghosts thông minh
+    - Tối ưu đường đi thu thập pellets
+    - Sử dụng power-ups hiệu quả
+    - Học từ best genes
+    
+    **Files:**
+    - `genetic_algorithim.py` - AI training script
+    - `best_gene.txt` - Best trained weights
+    - `minimax.py` - Ghost AI algorithm
+    """)
+
+
 if __name__ == "__main__":
     st.set_page_config(
         page_title="Pacman 2.0 Game",

@@ -614,7 +614,7 @@ def main():
         return
     
     if view == "Play Game":
-        from pacman_game_streamlit import create_game_tab
+        from pacman_game_integration import create_game_tab
         create_game_tab()
         return
     

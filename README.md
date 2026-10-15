@@ -97,8 +97,16 @@ streamlit run src/dashboard.py
 
 **Dashboard Features:**
 - 🎮 **Live Game**: Watch trained agents play in real-time
-- 🕹️ **Play Game**: Play classic Pacman directly in the dashboard
+- 🕹️ **Play Game**: Play **Pacman 2.0** (original Pygame game) directly from dashboard
 - 📊 **Comparison**: Side-by-side analysis of Baseline vs Explainable DQN
+
+**Play Game Tab:**
+- ✅ Full integration of original Pacman 2.0 game (from `Pacman2.0-main`)
+- ✅ Launch game in separate Pygame window with one click
+- ✅ Complete features: AI ghosts, sound effects, classic gameplay
+- ✅ W/A/S/D controls, multiple levels, authentic arcade experience
+
+Quick launch game only: `streamlit run launch_pacman_game.py`
 
 For detailed game controls and features, see [`docs/GAME_INTEGRATION.md`](docs/GAME_INTEGRATION.md)
 
@@ -114,7 +122,8 @@ project-xrl-mspacman/
     ├── explainer.py             # Explainability (attention, Grad-CAM, saliency)
     ├── train.py                 # Training script
     ├── dashboard.py             # Streamlit visualization
-    ├── pacman_game_streamlit.py        # Game tab wrapper
+    ├── pacman_game_integration.py      # Pacman 2.0 game launcher (Pygame)
+    ├── pacman_game_streamlit.py        # Legacy HTML5 game wrapper
     └── pacman_streamlit_component.py   # HTML5 Canvas game implementation
 ├── Pacman2.0-main/              # Original Pygame-based Pacman game
 │   ├── pacman.py                # Game logic
